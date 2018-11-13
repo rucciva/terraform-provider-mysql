@@ -116,8 +116,7 @@ func ReadDatabase(d *schema.ResourceData, meta interface{}) error {
 		// MySQL doesn't return the collation if it's the default one for
 		// the charset, so if we don't have a collation we need to go
 		// hunt for the default.
-		stmtSQL := "SHOW COLLATION WHERE `Charset` = ? AND `Default` = 'Yes'"
-		var empty interface{}
+		stmtSQL := "SELECT COLLATION_NAME from information_schema.COLLATIONS where `CHARACTER_SET_NAME`=? and `IS_DEFAULT`='yes';"
 
 		requiredVersion, _ := version.NewVersion("8.0.0")
 		currentVersion, err := serverVersion(db)
@@ -128,9 +127,9 @@ func ReadDatabase(d *schema.ResourceData, meta interface{}) error {
 		// MySQL 8 returns more data in a row.
 		var res error
 		if currentVersion.GreaterThan(requiredVersion) {
-			res = db.QueryRow(stmtSQL, defaultCharset).Scan(&defaultCollation, &empty, &empty, &empty, &empty, &empty, &empty)
+			res = db.QueryRow(stmtSQL, defaultCharset).Scan(&defaultCollation)
 		} else {
-			res = db.QueryRow(stmtSQL, defaultCharset).Scan(&defaultCollation, &empty, &empty, &empty, &empty, &empty)
+			res = db.QueryRow(stmtSQL, defaultCharset).Scan(&defaultCollation)
 		}
 
 		if res != nil {
